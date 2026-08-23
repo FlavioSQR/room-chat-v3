@@ -51,8 +51,13 @@ export default function App() {
     );
   }
 
+  function handleAuthenticated(newUser, newToken, joinedServerId) {
+    login(newUser, newToken);
+    if (joinedServerId) setActiveServerId(joinedServerId);
+  }
+
   if (!token || !user) {
-    return <AuthPage onLogin={login} />;
+    return <AuthPage onLogin={handleAuthenticated} />;
   }
 
   if (!socket) return null; // conectando ao socket

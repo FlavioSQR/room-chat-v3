@@ -3,13 +3,32 @@ import api from "../api/client.js";
 
 const AUTH_DISABLED = import.meta.env.VITE_AUTH_DISABLED === "true";
 
+function getInviteCodeFromUrl() {
+  return new URLSearchParams(window.location.search).get("invite") || "";
+}
+
+// Depois de usar o convite (ou não), tira o parâmetro da URL pra não tentar
+// entrar de novo se a página for recarregada.
+function clearInviteFromUrl() {
+  const url = new URL(window.location.href);
+  url.searchParams.delete("invite");
+  window.history.replaceState({}, "", url);
+}
+
 export default function AuthPage({ onLogin }) {
-  if (AUTH_DISABLED) return <QuickLoginPage onLogin={onLogin} />;
-  return <FullAuthPage onLogin={onLogin} />;
+  const [inviteCode] = useState(getInviteCodeFromUrl);
+
+  function handleLogin(user, token, joinedServerId) {
+    clearInviteFromUrl();
+    onLogin(user, token, joinedServerId);
+  }
+
+  if (AUTH_DISABLED) return <QuickLoginPage onLogin={handleLogin} inviteCode={inviteCode} />;
+  return <FullAuthPage onLogin={handleLogin} inviteCode={inviteCode} />;
 }
 
 // Modo de teste: entra com qualquer apelido, sem senha (ver AUTH_DISABLED no backend/.env).
-function QuickLoginPage({ onLogin }) {
+function QuickLoginPage({ onLogin, inviteCode }) {
   const [username, setUsername] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -19,8 +38,8 @@ function QuickLoginPage({ onLogin }) {
     setError("");
     setLoading(true);
     try {
-      const { data } = await api.post("/auth/quick-login", { username });
-      onLogin(data.user, data.token);
+      const { data } = await api.post("/auth/quick-login", { username, inviteCode: inviteCode || undefined });
+      onLogin(data.user, data.token, data.joinedServerId);
     } catch (err) {
       setError(err.response?.data?.error?.formErrors?.[0] || err.response?.data?.error || "Algo deu errado");
     } finally {
@@ -31,7 +50,12 @@ function QuickLoginPage({ onLogin }) {
   return (
     <div className="join-screen">
       <form className="join-box" onSubmit={handleSubmit}>
-        <h1>Entrar (modo de teste)</h1>
+        <h1>{inviteCode ? "Você foi convidado!" : "Entrar (modo de teste)"}</h1>
+        {inviteCode && (
+          <p style={{ fontSize: 13, color: "#949ba4", marginTop: -8, marginBottom: 4 }}>
+            Escolha um apelido para entrar na sala.
+          </p>
+        )}
         <input
           placeholder="Escolha um apelido"
           value={username}
@@ -50,8 +74,8 @@ function QuickLoginPage({ onLogin }) {
   );
 }
 
-function FullAuthPage({ onLogin }) {
-  const [isRegister, setIsRegister] = useState(false);
+function FullAuthPage({ onLogin, inviteCode }) {
+  const [isRegister, setIsRegister] = useState(Boolean(inviteCode));
   const [form, setForm] = useState({ username: "", email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -62,9 +86,12 @@ function FullAuthPage({ onLogin }) {
     setLoading(true);
     try {
       const endpoint = isRegister ? "/auth/register" : "/auth/login";
-      const payload = isRegister ? form : { email: form.email, password: form.password };
+      const payload = {
+        ...(isRegister ? form : { email: form.email, password: form.password }),
+        inviteCode: inviteCode || undefined,
+      };
       const { data } = await api.post(endpoint, payload);
-      onLogin(data.user, data.token);
+      onLogin(data.user, data.token, data.joinedServerId);
     } catch (err) {
       setError(err.response?.data?.error?.formErrors?.[0] || err.response?.data?.error || "Algo deu errado");
     } finally {
@@ -76,6 +103,11 @@ function FullAuthPage({ onLogin }) {
     <div className="join-screen">
       <form className="join-box" onSubmit={handleSubmit}>
         <h1>{isRegister ? "Criar conta" : "Entrar"}</h1>
+        {inviteCode && (
+          <p style={{ fontSize: 13, color: "#949ba4", marginTop: -8, marginBottom: 4 }}>
+            Você foi convidado! Entre para acessar a sala.
+          </p>
+        )}
 
         {isRegister && (
           <input
