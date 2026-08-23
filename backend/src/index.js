@@ -11,8 +11,7 @@ import { registerSocketHandlers } from "./sockets/index.js";
 
 const app = express();
 app.use(cors({
-    origin: "*",  // permite qualquer origem
-    credentials: true,
+    origin: "*",
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"]
 }));
