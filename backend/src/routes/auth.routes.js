@@ -21,13 +21,17 @@ async function assertInviteCodeIsValid(inviteCode) {
 }
 
 // Depois de logar/criar a conta: entra na sala do convite se houver um válido,
-// senão (só para conta nova) cria a sala automática do usuário.
-async function joinInviteOrCreateDefaultServer({ userId, username, inviteCode, isNewUser }) {
+// senão garante que o usuário tenha ao menos uma sala (cria a automática se
+// ele ainda não é membro de nenhuma — cobre tanto conta nova quanto conta
+// antiga que nunca chegou a ter uma sala).
+async function joinInviteOrCreateDefaultServer({ userId, username, inviteCode }) {
   if (inviteCode) {
     const server = await joinServerByInviteCode(userId, inviteCode);
     return server?.id ?? null;
   }
-  if (isNewUser) {
+
+  const hasAnyServer = await prisma.serverMember.findFirst({ where: { userId } });
+  if (!hasAnyServer) {
     const server = await createDefaultServer(userId, username);
     return server.id;
   }
@@ -63,7 +67,6 @@ router.post("/register", async (req, res) => {
     userId: user.id,
     username: user.username,
     inviteCode,
-    isNewUser: true,
   });
 
   res.status(201).json({ token, user: { id: user.id, username: user.username }, joinedServerId });
@@ -92,7 +95,6 @@ router.post("/login", async (req, res) => {
     userId: user.id,
     username: user.username,
     inviteCode,
-    isNewUser: false,
   });
 
   res.json({ token, user: { id: user.id, username: user.username }, joinedServerId });
@@ -118,9 +120,7 @@ router.post("/quick-login", async (req, res) => {
   }
 
   let user = await prisma.user.findUnique({ where: { username } });
-  let isNewUser = false;
   if (!user) {
-    isNewUser = true;
     const passwordHash = await bcrypt.hash(crypto.randomUUID(), 10);
     user = await prisma.user.create({
       data: { username, email: `${username}@quick-login.local`, passwordHash },
@@ -132,7 +132,6 @@ router.post("/quick-login", async (req, res) => {
     userId: user.id,
     username: user.username,
     inviteCode,
-    isNewUser,
   });
 
   res.json({ token, user: { id: user.id, username: user.username }, joinedServerId });

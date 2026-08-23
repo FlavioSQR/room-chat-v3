@@ -89,9 +89,19 @@ export default function App() {
           ) : (
             <VoiceChannelView channel={activeChannel} socket={socket} username={user.username} />
           )
+        ) : activeServer ? (
+          <div className="empty-state">Selecione um canal</div>
         ) : (
           <div className="empty-state">
-            {activeServer ? "Selecione um canal" : "Crie ou entre em um servidor para começar"}
+            <p>Crie ou entre em um servidor para começar</p>
+            <div className="empty-state-actions">
+              <button className="btn-primary" onClick={handleCreateServer}>
+                Criar sala
+              </button>
+              <button className="btn-secondary" onClick={logout}>
+                Sair
+              </button>
+            </div>
           </div>
         )}
       </div>
