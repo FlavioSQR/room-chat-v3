@@ -227,23 +227,31 @@ body {
 }
 .channel-item:hover { background: rgba(255,255,255,0.05); color: #dbdee1; }
 .channel-item.active { background: rgba(255,255,255,0.1); color: white; }
-.channel-row { display: flex; align-items: center; gap: 2px; flex-wrap: wrap; }
+.channel-row { display: flex; align-items: center; gap: 2px; }
 .channel-row .channel-item { flex: 1; }
-.voice-presence {
-  flex-basis: 100%;
-  display: flex; flex-wrap: wrap; gap: 4px;
-  padding: 2px 8px 4px 30px;
+.channel-block { display: flex; flex-direction: column; }
+.voice-participant-list {
+  display: flex; flex-direction: column;
+  padding: 2px 0 4px 22px;
 }
-.voice-presence-avatar {
-  width: 20px; height: 20px;
+.voice-participant {
+  display: flex; align-items: center; gap: 8px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  color: #949ba4;
+}
+.voice-participant:hover { background: rgba(255,255,255,0.05); color: #dbdee1; }
+.voice-participant-avatar {
+  width: 22px; height: 22px;
   border-radius: 50%;
   background: #5865f2;
   color: white;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
 }
+.voice-participant-name { font-size: 13px; }
 .channel-delete-btn {
   display: none;
   align-items: center; justify-content: center;

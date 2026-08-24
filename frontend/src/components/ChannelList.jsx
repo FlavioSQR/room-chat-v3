@@ -52,19 +52,22 @@ export default function ChannelList({
   function renderVoiceChannel(c) {
     const connected = voicePresence?.[c.id] || [];
     return (
-      <div key={c.id} className="channel-row channel-row-voice">
-        <button
-          className={`channel-item ${activeChannelId === c.id ? "active" : ""}`}
-          onClick={() => onSelectChannel(c)}
-        >
-          <Volume2 size={16} /> {c.name}
-        </button>
-        {renderDeleteButton(c.id)}
+      <div key={c.id} className="channel-block">
+        <div className="channel-row">
+          <button
+            className={`channel-item ${activeChannelId === c.id ? "active" : ""}`}
+            onClick={() => onSelectChannel(c)}
+          >
+            <Volume2 size={16} /> {c.name}
+          </button>
+          {renderDeleteButton(c.id)}
+        </div>
         {connected.length > 0 && (
-          <div className="voice-presence">
+          <div className="voice-participant-list">
             {connected.map((p) => (
-              <div key={p.userId} className="voice-presence-avatar" title={p.username}>
-                {p.username.slice(0, 1).toUpperCase()}
+              <div key={p.userId} className="voice-participant">
+                <div className="voice-participant-avatar">{p.username.slice(0, 1).toUpperCase()}</div>
+                <span className="voice-participant-name">{p.username}</span>
               </div>
             ))}
           </div>
