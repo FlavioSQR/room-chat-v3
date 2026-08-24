@@ -164,6 +164,19 @@ body {
 .server-icon:hover, .server-icon.active { border-radius: 16px; background: #5865f2; }
 .server-icon.add { background: #313338; color: #23a559; }
 .server-icon.add:hover { background: #23a559; color: white; }
+.server-icon-wrapper { position: relative; }
+.server-delete-badge {
+  display: none;
+  position: absolute; top: -4px; right: -4px;
+  width: 20px; height: 20px;
+  align-items: center; justify-content: center;
+  border-radius: 50%;
+  background: #da373c;
+  color: white;
+  border: 2px solid #1e1f22;
+  cursor: pointer;
+}
+.server-icon-wrapper:hover .server-delete-badge { display: flex; }
 
 .channel-list {
   width: 240px;
@@ -214,6 +227,19 @@ body {
 }
 .channel-item:hover { background: rgba(255,255,255,0.05); color: #dbdee1; }
 .channel-item.active { background: rgba(255,255,255,0.1); color: white; }
+.channel-row { display: flex; align-items: center; gap: 2px; }
+.channel-row .channel-item { flex: 1; }
+.channel-delete-btn {
+  display: none;
+  align-items: center; justify-content: center;
+  background: none; border: none;
+  color: #949ba4;
+  cursor: pointer;
+  padding: 4px;
+  width: auto;
+}
+.channel-row:hover .channel-delete-btn { display: flex; }
+.channel-delete-btn:hover { color: #da373c; }
 .channel-list-footer {
   height: 48px;
   display: flex; align-items: center;

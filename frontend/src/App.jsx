@@ -51,6 +51,30 @@ export default function App() {
     );
   }
 
+  async function handleDeleteServer(serverId) {
+    const server = servers.find((s) => s.id === serverId);
+    if (!confirm(`Apagar a sala "${server?.name}"? Essa ação não pode ser desfeita.`)) return;
+
+    await api.delete(`/servers/${serverId}`);
+    setServers((prev) => prev.filter((s) => s.id !== serverId));
+    if (activeServerId === serverId) {
+      setActiveServerId(null);
+      setActiveChannel(null);
+    }
+  }
+
+  async function handleDeleteChannel(channelId) {
+    if (!confirm("Apagar este canal?")) return;
+
+    await api.delete(`/servers/${activeServerId}/channels/${channelId}`);
+    setServers((prev) =>
+      prev.map((s) =>
+        s.id === activeServerId ? { ...s, channels: s.channels.filter((c) => c.id !== channelId) } : s
+      )
+    );
+    if (activeChannel?.id === channelId) setActiveChannel(null);
+  }
+
   function handleAuthenticated(newUser, newToken, joinedServerId) {
     login(newUser, newToken);
     if (joinedServerId) setActiveServerId(joinedServerId);
@@ -69,17 +93,21 @@ export default function App() {
       <ServerSidebar
         servers={servers}
         activeServerId={activeServerId}
+        currentUserId={user.id}
         onSelect={(id) => {
           setActiveServerId(id);
           setActiveChannel(null);
         }}
         onCreate={handleCreateServer}
+        onDeleteServer={handleDeleteServer}
       />
       <ChannelList
         server={activeServer}
         activeChannelId={activeChannel?.id}
+        currentUserId={user.id}
         onSelectChannel={setActiveChannel}
         onCreateChannel={handleCreateChannel}
+        onDeleteChannel={handleDeleteChannel}
         username={user.username}
       />
       <div className="main-area">

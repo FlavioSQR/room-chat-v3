@@ -52,4 +52,29 @@ router.post("/:serverId/channels", async (req, res) => {
   res.status(201).json(channel);
 });
 
+// Apagar um servidor (só o dono pode; canais, membros e mensagens somem em cascata)
+router.delete("/:serverId", async (req, res) => {
+  const { serverId } = req.params;
+  const server = await prisma.server.findUnique({ where: { id: serverId } });
+  if (!server) return res.status(404).json({ error: "Servidor não encontrado" });
+  if (server.ownerId !== req.userId) return res.status(403).json({ error: "Só o dono pode apagar essa sala" });
+
+  await prisma.server.delete({ where: { id: serverId } });
+  res.status(204).end();
+});
+
+// Apagar um canal (só o dono do servidor pode)
+router.delete("/:serverId/channels/:channelId", async (req, res) => {
+  const { serverId, channelId } = req.params;
+  const server = await prisma.server.findUnique({ where: { id: serverId } });
+  if (!server) return res.status(404).json({ error: "Servidor não encontrado" });
+  if (server.ownerId !== req.userId) return res.status(403).json({ error: "Só o dono pode apagar canais" });
+
+  const channel = await prisma.channel.findFirst({ where: { id: channelId, serverId } });
+  if (!channel) return res.status(404).json({ error: "Canal não encontrado" });
+
+  await prisma.channel.delete({ where: { id: channelId } });
+  res.status(204).end();
+});
+
 export default router;
