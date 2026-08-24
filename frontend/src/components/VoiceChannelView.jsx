@@ -3,7 +3,7 @@ import { useVoiceChannel } from "../useVoiceChannel.js";
 import VideoTile from "../VideoTile.jsx";
 
 export default function VoiceChannelView({ channel, socket, username }) {
-  const vc = useVoiceChannel(socket, channel.id);
+  const vc = useVoiceChannel(socket, channel.id, channel.serverId);
 
   useEffect(() => {
     vc.join();

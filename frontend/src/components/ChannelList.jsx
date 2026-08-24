@@ -5,6 +5,7 @@ export default function ChannelList({
   server,
   activeChannelId,
   currentUserId,
+  voicePresence,
   onSelectChannel,
   onCreateChannel,
   onDeleteChannel,
@@ -25,19 +26,48 @@ export default function ChannelList({
     setTimeout(() => setCopied(false), 1500);
   }
 
-  function renderChannel(c, Icon) {
+  function renderDeleteButton(channelId) {
+    if (!isOwner) return null;
+    return (
+      <button className="channel-delete-btn" title="Apagar canal" onClick={() => onDeleteChannel(channelId)}>
+        <Trash2 size={14} />
+      </button>
+    );
+  }
+
+  function renderTextChannel(c) {
     return (
       <div key={c.id} className="channel-row">
         <button
           className={`channel-item ${activeChannelId === c.id ? "active" : ""}`}
           onClick={() => onSelectChannel(c)}
         >
-          <Icon size={16} /> {c.name}
+          <Hash size={16} /> {c.name}
         </button>
-        {isOwner && (
-          <button className="channel-delete-btn" title="Apagar canal" onClick={() => onDeleteChannel(c.id)}>
-            <Trash2 size={14} />
-          </button>
+        {renderDeleteButton(c.id)}
+      </div>
+    );
+  }
+
+  function renderVoiceChannel(c) {
+    const connected = voicePresence?.[c.id] || [];
+    return (
+      <div key={c.id} className="channel-row channel-row-voice">
+        <button
+          className={`channel-item ${activeChannelId === c.id ? "active" : ""}`}
+          onClick={() => onSelectChannel(c)}
+        >
+          <Volume2 size={16} /> {c.name}
+        </button>
+        {renderDeleteButton(c.id)}
+        {connected.length > 0 && (
+          <div className="voice-presence">
+            {connected.map((p) => (
+              <div key={p.userId} className="voice-presence-avatar" title={p.username}>
+                {p.username.slice(0, 1).toUpperCase()}
+              </div>
+            ))}
+          </div>
         )}
       </div>
     );
@@ -56,13 +86,13 @@ export default function ChannelList({
           Canais de texto
           <button onClick={() => onCreateChannel("text")}>+</button>
         </div>
-        {textChannels.map((c) => renderChannel(c, Hash))}
+        {textChannels.map(renderTextChannel)}
 
         <div className="channel-group-label">
           Canais de voz
           <button onClick={() => onCreateChannel("voice")}>+</button>
         </div>
-        {voiceChannels.map((c) => renderChannel(c, Volume2))}
+        {voiceChannels.map(renderVoiceChannel)}
       </div>
       <div className="channel-list-footer">{username}</div>
     </div>

@@ -25,6 +25,28 @@ export function registerSocketHandlers(io) {
     socket.on("channel:join", (channelId) => socket.join(`channel:${channelId}`));
     socket.on("channel:leave", (channelId) => socket.leave(`channel:${channelId}`));
 
+    // ---------- PRESENÇA (quem está em cada canal de voz) ----------
+    // Sala socket.io separada por servidor, pra quem só está olhando a lista de
+    // canais (sem estar em nenhuma chamada) receber as atualizações também.
+
+    socket.on("server:join", async (serverId, callback) => {
+      socket.join(`server:${serverId}`);
+      const voiceChannelsOfServer = await prisma.channel.findMany({
+        where: { serverId, type: "voice" },
+        select: { id: true },
+      });
+      const presence = {};
+      for (const { id } of voiceChannelsOfServer) {
+        const members = voiceChannels.get(id);
+        presence[id] = members
+          ? Array.from(members.entries()).map(([userId, data]) => ({ userId, username: data.username }))
+          : [];
+      }
+      callback?.(presence);
+    });
+
+    socket.on("server:leave", (serverId) => socket.leave(`server:${serverId}`));
+
     socket.on("message:send", async ({ channelId, content }) => {
       if (!content?.trim()) return;
       const message = await prisma.message.create({
@@ -45,7 +67,7 @@ export function registerSocketHandlers(io) {
     // Mesh P2P via sinalização Socket.IO (mesma lógica que já validamos).
     // Escopo agora é por canal de voz dentro de um servidor, não uma sala solta.
 
-    socket.on("voice:join", ({ channelId }, callback) => {
+    socket.on("voice:join", ({ channelId, serverId }, callback) => {
       if (!voiceChannels.has(channelId)) voiceChannels.set(channelId, new Map());
       const members = voiceChannels.get(channelId);
 
@@ -61,19 +83,32 @@ export function registerSocketHandlers(io) {
 
       members.set(socket.userId, { username: socket.data.username });
       socket.data.voiceChannelId = channelId;
+      socket.data.voiceServerId = serverId;
 
       callback?.({ existingPeers });
       socket.to(`voice:${channelId}`).emit("voice:peer-joined", {
         userId: socket.userId,
         username: socket.data.username,
       });
+      if (serverId) {
+        io.to(`server:${serverId}`).emit("presence:voice-update", {
+          channelId,
+          userId: socket.userId,
+          username: socket.data.username,
+          joined: true,
+        });
+      }
     });
 
-    socket.on("voice:leave", ({ channelId }) => {
+    socket.on("voice:leave", ({ channelId, serverId }) => {
       socket.leave(`voice:${channelId}`);
       voiceChannels.get(channelId)?.delete(socket.userId);
       socket.to(`voice:${channelId}`).emit("voice:peer-left", { userId: socket.userId });
+      if (serverId) {
+        io.to(`server:${serverId}`).emit("presence:voice-update", { channelId, userId: socket.userId, joined: false });
+      }
       socket.data.voiceChannelId = null;
+      socket.data.voiceServerId = null;
     });
 
     socket.on("webrtc:offer", ({ targetUserId, offer }) => {
@@ -103,9 +138,13 @@ export function registerSocketHandlers(io) {
 
     socket.on("disconnect", () => {
       const channelId = socket.data.voiceChannelId;
+      const serverId = socket.data.voiceServerId;
       if (channelId) {
         voiceChannels.get(channelId)?.delete(socket.userId);
         socket.to(`voice:${channelId}`).emit("voice:peer-left", { userId: socket.userId });
+        if (serverId) {
+          io.to(`server:${serverId}`).emit("presence:voice-update", { channelId, userId: socket.userId, joined: false });
+        }
       }
     });
   });

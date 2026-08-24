@@ -4,7 +4,7 @@ const ICE_SERVERS = {
   iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
 };
 
-export function useVoiceChannel(socket, channelId, myUserId) {
+export function useVoiceChannel(socket, channelId, serverId) {
   const [localStream, setLocalStream] = useState(null);
   const [screenStream, setScreenStream] = useState(null);
   const [peers, setPeers] = useState({}); // { userId: { username, stream, screenStream, camOn, micOn } }
@@ -77,7 +77,7 @@ export function useVoiceChannel(socket, channelId, myUserId) {
     localStreamRef.current = stream;
     setLocalStream(stream);
 
-    socket.emit("voice:join", { channelId }, async (res) => {
+    socket.emit("voice:join", { channelId, serverId }, async (res) => {
       if (res?.error) {
         setError(res.error);
         stream.getTracks().forEach((t) => t.stop());
@@ -93,10 +93,10 @@ export function useVoiceChannel(socket, channelId, myUserId) {
         socket.emit("webrtc:offer", { targetUserId: peer.userId, offer });
       }
     });
-  }, [socket, channelId, ensurePeerConnection]);
+  }, [socket, channelId, serverId, ensurePeerConnection]);
 
   const leave = useCallback(() => {
-    socket.emit("voice:leave", { channelId });
+    socket.emit("voice:leave", { channelId, serverId });
     localStreamRef.current?.getTracks().forEach((t) => t.stop());
     screenStreamRef.current?.getTracks().forEach((t) => t.stop());
     Object.values(pcsRef.current).forEach((pc) => pc.close());
@@ -108,7 +108,7 @@ export function useVoiceChannel(socket, channelId, myUserId) {
     setPeers({});
     setCamOn(false);
     setSharingScreen(false);
-  }, [socket, channelId]);
+  }, [socket, channelId, serverId]);
 
   const toggleMic = useCallback(() => {
     const track = localStreamRef.current?.getAudioTracks()[0];

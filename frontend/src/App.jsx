@@ -16,6 +16,7 @@ export default function App() {
   const [servers, setServers] = useState([]);
   const [activeServerId, setActiveServerId] = useState(null);
   const [activeChannel, setActiveChannel] = useState(null);
+  const [voicePresence, setVoicePresence] = useState({}); // { [channelId]: [{userId, username}] }
 
   useEffect(() => {
     if (!token) return;
@@ -23,6 +24,33 @@ export default function App() {
     setSocket(s);
     return () => s.disconnect();
   }, [token]);
+
+  // Entra na "sala" de presença do servidor ativo, pra saber quem está em
+  // cada canal de voz mesmo sem estar dentro de nenhum deles.
+  useEffect(() => {
+    if (!socket || !activeServerId) return;
+
+    socket.emit("server:join", activeServerId, (presence) => setVoicePresence(presence || {}));
+
+    function handlePresenceUpdate({ channelId, userId, username, joined }) {
+      setVoicePresence((prev) => {
+        const current = prev[channelId] || [];
+        const next = joined
+          ? current.some((p) => p.userId === userId)
+            ? current
+            : [...current, { userId, username }]
+          : current.filter((p) => p.userId !== userId);
+        return { ...prev, [channelId]: next };
+      });
+    }
+    socket.on("presence:voice-update", handlePresenceUpdate);
+
+    return () => {
+      socket.emit("server:leave", activeServerId);
+      socket.off("presence:voice-update", handlePresenceUpdate);
+      setVoicePresence({});
+    };
+  }, [socket, activeServerId]);
 
   useEffect(() => {
     if (!token) return;
@@ -105,6 +133,7 @@ export default function App() {
         server={activeServer}
         activeChannelId={activeChannel?.id}
         currentUserId={user.id}
+        voicePresence={voicePresence}
         onSelectChannel={setActiveChannel}
         onCreateChannel={handleCreateChannel}
         onDeleteChannel={handleDeleteChannel}
