@@ -3,29 +3,27 @@ services:
     name: room-chat-backend
     runtime: node
     plan: free
-    buildCommand: cd backend && npm install
-    startCommand: cd backend && npm start
+    buildCommand: npm install
+    startCommand: npm start
+    rootDir: backend
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
         value: 4000
-    disk:
-      name: postgres_data
-      mountPath: /var/lib/postgresql/data
-      sizeGB: 1
 
   - type: web
     name: room-chat-frontend
     runtime: node
     plan: free
-    buildCommand: cd frontend && npm install && npm run build
-    startCommand: cd frontend && npm run preview
+    buildCommand: npm install && npm run build
+    startCommand: npm run preview
+    rootDir: frontend
     envVars:
       - key: VITE_API_URL
-        value: https://room-chat-backend.onrender.com/api
+        value: https://room-chat-api-zg95.onrender.com/api
       - key: VITE_SOCKET_URL
-        value: https://room-chat-backend.onrender.com
+        value: https://room-chat-api-zg95.onrender.com
       - key: VITE_AUTH_DISABLED
         value: "true"
 
